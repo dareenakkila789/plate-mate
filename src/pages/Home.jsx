@@ -47,12 +47,12 @@
 
 // export default App;
 import { Link } from 'react-router-dom'
-import Header from '../components/Header'
-import Hero from '../components/Hero'
-import HowItHelps from '../components/HowItHelps'
-import WhyItMatters from '../components/WhyItMatters'
-import PreviewListings from '../components/PreviewListings'
-import Footer from '../components/Footer'
+import Header from '../components/ui/Header'
+import Hero from '../components/ui/Hero'
+import HowItHelps from '../components/ui/HowItHelps'
+import WhyItMatters from '../components/ui/WhyItMatters'
+import PreviewListings from '../components/ui/PreviewListings'
+import Footer from '../components/ui/Footer'
 
 function Home({ user }) {
   return (

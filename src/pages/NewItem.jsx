@@ -1,239 +1,54 @@
-// import { useState, useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
-// import { db, auth, storage } from "../config/firebase"; // Import storage from Firebase
-// import { getDocs, collection, addDoc } from "firebase/firestore";
-// import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Firebase Storage methods
-
-// const NewItem = () => {
-//   const [foodName, setFoodName] = useState("");
-//   const [description, setDescription] = useState("");
-//   const [image, setImage] = useState(null); // Image as a file
-//   const [expiryDate, setExpiryDate] = useState("");
-//   const [pickupLocation, setPickupLocation] = useState("");
-//   const [dietaryPreferences, setDietaryPreferences] = useState([]);
-//   const [otherDietaryPreference, setOtherDietaryPreference] = useState("");
-//   const [availabilityStartTime, setAvailabilityStartTime] = useState("");
-//   const [availabilityEndTime, setAvailabilityEndTime] = useState("");
-//   const [posts, setPosts] = useState([]); // State to store fetched posts
-//   const [userId, setUserId] = useState(null); // Automatically set userId
-
-//   const postsCollectionRef = collection(db, "posts");
-
-//   // Fetch posts from Firestore
-//   useEffect(() => {
-//     const fetchPosts = async () => {
-//       try {
-//         const data = await getDocs(postsCollectionRef);
-//         const postsData = data.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-//         setPosts(postsData);
-//       } catch (err) {
-//         console.error("Error fetching posts:", err);
-//       }
-//     };
-
-//     fetchPosts();
-//   }, []);
-
-//   // Get the current user's ID
-//   useEffect(() => {
-//     const unsubscribe = auth.onAuthStateChanged((user) => {
-//       if (user) {
-//         setUserId(user.uid); // Set the userId to the logged-in user's UID
-//       } else {
-//         setUserId(null); // No user is logged in
-//       }
-//     });
-
-//     return () => unsubscribe(); // Cleanup subscription
-//   }, []);
-
-//   const handleDietaryChange = (e) => {
-//     const { value, checked } = e.target;
-//     setDietaryPreferences((prev) =>
-//       checked ? [...prev, value] : prev.filter((item) => item !== value)
-//     );
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     if (!userId) {
-//       console.error("User is not logged in.");
-//       return;
-//     }
-
-//     if (!image) {
-//       console.error("Image is required.");
-//       return;
-//     }
-
-//     try {
-//       // Upload the image to Firebase Storage
-//       const imageRef = ref(storage, `food-images/${Date.now()}-${image.name}`);
-//       await uploadBytes(imageRef, image);
-//       const imageUrl = await getDownloadURL(imageRef);
-
-//       // Add the post to Firestore
-//       await addDoc(postsCollectionRef, {
-//         foodName,
-//         description,
-//         expiryDate,
-//         pickupLocation,
-//         dietaryPreferences: dietaryPreferences.includes("Other")
-//           ? [...dietaryPreferences.filter((p) => p !== "Other"), otherDietaryPreference]
-//           : dietaryPreferences,
-//         availabilityStartTime,
-//         availabilityEndTime,
-//         userId, // Automatically set userId
-//         imageUrl, // Store the image URL
-//         isAvailable: true, // Default value
-//         createdAt: new Date().toISOString(), // Local timestamp
-//       });
-
-//       // Clear form fields
-//       setFoodName("");
-//       setDescription("");
-//       setImage(null);
-//       setExpiryDate("");
-//       setPickupLocation("");
-//       setDietaryPreferences([]);
-//       setOtherDietaryPreference("");
-//       setAvailabilityStartTime("");
-//       setAvailabilityEndTime("");
-
-//       // Refresh posts
-//       const data = await getDocs(postsCollectionRef);
-//       const postsData = data.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-//       setPosts(postsData);
-//     } catch (err) {
-//       console.error("Error saving post:", err);
-//     }
-//   };
-
-//   return (
-//     <div className="main-content flex flex-col items-center min-h-screen bg-gray-100 p-4">
-//       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-lg space-y-4">
-//         <h2 className="text-xl font-semibold">Post New Food Item</h2>
-//         <input
-//           type="text"
-//           placeholder="Food Name"
-//           value={foodName}
-//           onChange={(e) => setFoodName(e.target.value)}
-//           required
-//           className="input"
-//         />
-//         <textarea
-//           placeholder="Description"
-//           value={description}
-//           onChange={(e) => setDescription(e.target.value)}
-//           required
-//           className="input"
-//         />
-//         <input
-//           type="file"
-//           onChange={(e) => setImage(e.target.files[0])} // Set the image file
-//           required
-//           className="input"
-//         />
-//         <input
-//           type="date"
-//           value={expiryDate}
-//           onChange={(e) => setExpiryDate(e.target.value)}
-//           className="input"
-//         />
-//         <input
-//           type="text"
-//           placeholder="Pickup Location"
-//           value={pickupLocation}
-//           onChange={(e) => setPickupLocation(e.target.value)}
-//           required
-//           className="input"
-//         />
-//         <div className="space-y-2">
-//           <p className="font-medium">Dietary Preferences:</p>
-//           {["Vegan", "Gluten-Free", "Dairy-Free", "Nut-Free", "Other"].map((option) => (
-//             <label key={option} className="block">
-//               <input
-//                 type="checkbox"
-//                 value={option}
-//                 checked={dietaryPreferences.includes(option)}
-//                 onChange={handleDietaryChange}
-//               />
-//               <span className="ml-2">{option}</span>
-//             </label>
-//           ))}
-//           {dietaryPreferences.includes("Other") && (
-//             <input
-//               type="text"
-//               value={otherDietaryPreference}
-//               onChange={(e) => setOtherDietaryPreference(e.target.value)}
-//               placeholder="Specify other"
-//               className="input"
-//             />
-//           )}
-//         </div>
-//         <div>
-//           <label>Available From:</label>
-//           <input
-//             type="time"
-//             value={availabilityStartTime}
-//             onChange={(e) => setAvailabilityStartTime(e.target.value)}
-//             className="input"
-//           />
-//         </div>
-//         <div>
-//           <label>Available Until:</label>
-//           <input
-//             type="time"
-//             value={availabilityEndTime}
-//             onChange={(e) => setAvailabilityEndTime(e.target.value)}
-//             className="input"
-//           />
-//         </div>
-//         <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">
-//           Post Food
-//         </button>
-//       </form>
-
-      
-//     </div>
-//   );
-// };
-
-// export default NewItem;
-
-import { useState,useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { db, auth, storage } from "../config/firebase"; // Import storage from Firebase
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { db, auth } from "../config/firebase";
 import { getDocs, collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Firebase Storage methods
-
 
 const NewItem = () => {
+  const navigate = useNavigate();
+
   const [foodName, setFoodName] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState(null); // Image as a file
+  const [imageBase64, setImageBase64] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [pickupDate, setPickupDate] = useState(""); // Changed to empty string for no default
   const [pickupLocation, setPickupLocation] = useState("");
+  const [category, setCategory] = useState("");
   const [dietaryPreferences, setDietaryPreferences] = useState([]);
   const [otherDietaryPreference, setOtherDietaryPreference] = useState("");
   const [availabilityStartTime, setAvailabilityStartTime] = useState("");
   const [availabilityEndTime, setAvailabilityEndTime] = useState("");
-  const [posts, setPosts] = useState([]); // State to store fetched posts
-  const [userId, setUserId] = useState(null); // Automatically set userId
+  const [posts, setPosts] = useState([]);
+  const [userId, setUserId] = useState(null);
   const [previewImages, setPreviewImages] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const postsCollectionRef = collection(db, "posts");
-  const dietaryOptions = ["Vegan", "Gluten-Free", "Dairy-Free", "Nut-Free", "Other"];
 
-  // Fetch posts from Firestore
+  const dietaryOptions = [
+    "Vegan",
+    "Gluten-Free",
+    "Dairy-Free",
+    "Nut-Free",
+    "Other",
+  ];
+
+  const categoryOptions = [
+    { value: "", label: "Select category" },
+    { value: "baked", label: "Baked Goods" },
+    { value: "cooked", label: "Cooked Meals" },
+    { value: "fruits", label: "Fruits & Vegetables" },
+    { value: "other", label: "Other" },
+  ];
+
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         const data = await getDocs(postsCollectionRef);
-        const postsData = data.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const postsData = data.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setPosts(postsData);
       } catch (err) {
         console.error("Error fetching posts:", err);
@@ -243,100 +58,174 @@ const NewItem = () => {
     fetchPosts();
   }, []);
 
-  // Get the current user's ID
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        setUserId(user.uid); // Set the userId to the logged-in user's UID
+        setUserId(user.uid);
       } else {
-        setUserId(null); // No user is logged in
+        setUserId(null);
       }
     });
 
-    return () => unsubscribe(); // Cleanup subscription
+    return () => unsubscribe();
   }, []);
-
 
   const handleDietaryChange = (e) => {
     const { value, checked } = e.target;
+
     setDietaryPreferences((prev) =>
       checked ? [...prev, value] : prev.filter((item) => item !== value)
     );
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    setImage(files[0]);
-    setPreviewImages(files.map(file => URL.createObjectURL(file)));
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.readAsDataURL(file);
+
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxWidth = 800;
+          const scaleSize = maxWidth / img.width;
+
+          canvas.width = maxWidth;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+
+          resolve(compressedBase64);
+        };
+
+        img.onerror = reject;
+      };
+
+      reader.onerror = reject;
+    });
   };
 
-  const removeImage = (index) => {
-    setPreviewImages(prev => prev.filter((_, i) => i !== index));
-    setImage(null);
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const file = files[0];
+
+    try {
+      const compressedImage = await compressImage(file);
+      setImageBase64(compressedImage);
+      setPreviewImages([compressedImage]);
+    } catch (err) {
+      console.error("Error processing image:", err);
+      alert("Failed to process image.");
+    }
+  };
+
+  const removeImage = () => {
+    setPreviewImages([]);
+    setImageBase64("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!userId) {
-      console.error("User is not logged in.");
+      alert("You must be logged in to share food. Please sign in.");
       return;
     }
 
-    if (!image) {
-      console.error("Image is required.");
+    if (!imageBase64) {
+      alert("Please select an image for your food item.");
+      return;
+    }
+
+    if (!category) {
+      alert("Please select a food category.");
+      return;
+    }
+
+    if (!pickupDate || !availabilityStartTime || !availabilityEndTime) {
+      alert("Please set pickup date and time.");
+      return;
+    }
+
+    const fromDateTime = new Date(`${pickupDate}T${availabilityStartTime}`);
+    const untilDateTime = new Date(`${pickupDate}T${availabilityEndTime}`);
+
+    if (fromDateTime >= untilDateTime) {
+      alert("Available until time must be after available from time.");
+      return;
+    }
+
+    if (expiryDate && new Date(pickupDate) > new Date(expiryDate)) {
+      alert("Pickup date must be on or before the expiry date.");
       return;
     }
 
     try {
-      // Upload the image to Firebase Storage
-      const imageRef = ref(storage, `food-images/${Date.now()}-${image.name}`);
-      await uploadBytes(imageRef, image);
-      const imageUrl = await getDownloadURL(imageRef);
-
-      // Add the post to Firestore
       await addDoc(postsCollectionRef, {
         foodName,
         description,
         expiryDate,
+        pickupDate,
         pickupLocation,
+        category,
         dietaryPreferences: dietaryPreferences.includes("Other")
-          ? [...dietaryPreferences.filter((p) => p !== "Other"), otherDietaryPreference]
+          ? [
+              ...dietaryPreferences.filter((p) => p !== "Other"),
+              otherDietaryPreference,
+            ]
           : dietaryPreferences,
         availabilityStartTime,
         availabilityEndTime,
-        userId, // Automatically set userId
-        imageUrl, // Store the image URL
-        isAvailable: true, // Default value
-        createdAt: new Date().toISOString(), // Local timestamp
+        userId,
+        imageUrl: imageBase64,
+        isAvailable: true,
+        createdAt: new Date().toISOString(),
       });
 
       setShowSuccess(true);
 
-      // Clear form fields
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate("/profile");
+      }, 2000);
+
       setFoodName("");
       setDescription("");
-      setImage(null);
+      setImageBase64("");
       setExpiryDate("");
+      setPickupDate(""); // Reset to empty
       setPickupLocation("");
+      setCategory("");
       setDietaryPreferences([]);
       setOtherDietaryPreference("");
       setAvailabilityStartTime("");
       setAvailabilityEndTime("");
+      setPreviewImages([]);
 
-      // Refresh posts
       const data = await getDocs(postsCollectionRef);
-      const postsData = data.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const postsData = data.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setPosts(postsData);
     } catch (err) {
       console.error("Error saving post:", err);
+      alert("Failed to share food. Please try again. Error: " + err.message);
     }
   };
+
   return (
     <div className="min-h-screen bg-background">
-      
       <div className="container-custom py-12">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-3xl mx-auto bg-white rounded-xl shadow-xl p-8 md:p-10 border-2 border-green-700"
@@ -344,177 +233,239 @@ const NewItem = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-text-dark mb-4">
             Share Your Food
           </h1>
+
           <p className="text-text-light mb-8 text-lg">
             Fill in the details below to share your food with the community.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-8 text-lg">
-            {/* Food Name */}
             <div>
-              <label htmlFor="name" className="block text-base font-semibold text-text-dark mb-2">
+              <label
+                htmlFor="name"
+                className="block text-base font-semibold text-text-dark mb-2"
+              >
                 Food Name *
               </label>
+
               <input
                 type="text"
                 id="name"
-                name="name"
                 required
                 value={foodName}
                 onChange={(e) => setFoodName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-muted focus:outline-none focus:border-primary text-base"
+                className="w-full px-4 py-3 rounded-lg border border-muted"
                 placeholder="e.g., Homemade Chocolate Cake"
               />
             </div>
 
-            {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-lg font-semibold text-text-dark mb-2">
+              <label
+                htmlFor="description"
+                className="block text-lg font-semibold mb-2"
+              >
                 Description
               </label>
+
               <textarea
                 id="description"
-                name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows="4"
-                className="w-full px-6 py-4 rounded-xl border-2 border-muted focus:outline-none focus:border-primary text-xl"
-                placeholder="Tell us more about the food (ingredients, preparation date, etc.)"
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
+                placeholder="Tell us more about the food"
               />
             </div>
 
-            {/* Location */}
             <div>
-  <label htmlFor="pickupLocation" className="block text-lg font-semibold text-text-dark mb-2">
-    Pickup Location *
-  </label>
-  <select
-    id="pickupLocation"
-    name="pickupLocation"
-    required
-    value={pickupLocation}
-    onChange={(e) => setPickupLocation(e.target.value)}
-    className="w-full px-6 py-4 rounded-xl border-2 border-muted focus:outline-none focus:border-primary text-xl"
-  >
-    <option value="">Select a district</option>
-    {Array.from({ length: 22 }, (_, i) => (
-      <option key={i + 1} value={`District ${i + 1}`}>
-        District {i + 1}
-      </option>
-    ))}
-  </select>
-</div>
+              <label
+                htmlFor="pickupLocation"
+                className="block text-lg font-semibold mb-2"
+              >
+                Pickup Location *
+              </label>
 
-            {/* Expiry Date */}
+              <select
+                id="pickupLocation"
+                required
+                value={pickupLocation}
+                onChange={(e) => setPickupLocation(e.target.value)}
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
+              >
+                <option value="">Select a district</option>
+                {Array.from({ length: 22 }, (_, i) => (
+                  <option key={i + 1} value={`District ${i + 1}`}>
+                    District {i + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
-              <label htmlFor="expiryDate" className="block text-lg font-semibold text-text-dark mb-2">
+              <label
+                htmlFor="category"
+                className="block text-lg font-semibold mb-2"
+              >
+                Food Category *
+              </label>
+
+              <select
+                id="category"
+                required
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
+              >
+                {categoryOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="expiryDate"
+                className="block text-lg font-semibold mb-2"
+              >
                 Best Before *
               </label>
+
               <input
                 type="date"
                 id="expiryDate"
-                name="expiryDate"
                 required
                 value={expiryDate}
                 onChange={(e) => setExpiryDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full px-6 py-4 rounded-xl border-2 border-muted focus:outline-none focus:border-primary text-xl"
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
               />
             </div>
 
-            {/* Available From */}
             <div>
-              <label className="block text-lg font-semibold mb-2">Available From:</label>
+              <label
+                htmlFor="pickupDate"
+                className="block text-lg font-semibold mb-2"
+              >
+                Pickup Date *
+              </label>
+
+              <input
+                type="date"
+                id="pickupDate"
+                required
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
+              />
+            </div>
+
+            <div>
+              <label className="block text-lg font-semibold mb-2">
+                Available From *
+              </label>
+
               <input
                 type="time"
                 value={availabilityStartTime}
                 onChange={(e) => setAvailabilityStartTime(e.target.value)}
-                className="w-full px-6 py-4 rounded-xl border-2 border-muted focus:outline-none focus:border-primary text-xl"
+                required
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
               />
             </div>
+
             <div>
-              <label className="block text-lg font-semibold mb-2">Available Until:</label>
+              <label className="block text-lg font-semibold mb-2">
+                Available Until *
+              </label>
+
               <input
                 type="time"
                 value={availabilityEndTime}
                 onChange={(e) => setAvailabilityEndTime(e.target.value)}
-                className="w-full px-6 py-4 rounded-xl border-2 border-muted focus:outline-none focus:border-primary text-xl"
+                required
+                className="w-full px-6 py-4 rounded-xl border-2 border-muted"
               />
+
+              <p className="text-sm text-gray-500 mt-1">
+                Pickup is available on the selected date during this time window.
+              </p>
             </div>
 
-            {/* Dietary Tags */}
             <div>
-              <label className="block text-lg font-semibold text-text-dark mb-3">
+              <label className="block text-lg font-semibold mb-3">
                 Dietary Information
               </label>
+
               <div className="flex flex-wrap gap-4">
-                {dietaryOptions.map(option => (
-                  <label key={option} className="flex items-center gap-3 text-xl">
+                {dietaryOptions.map((option) => (
+                  <label key={option} className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       value={option}
                       checked={dietaryPreferences.includes(option)}
                       onChange={handleDietaryChange}
-                      className="w-5 h-5"
                     />
                     <span>{option}</span>
                   </label>
                 ))}
               </div>
+
               {dietaryPreferences.includes("Other") && (
                 <input
                   type="text"
                   value={otherDietaryPreference}
                   onChange={(e) => setOtherDietaryPreference(e.target.value)}
                   placeholder="Specify other"
-                  className="input mt-3 text-xl px-6 py-4 rounded-xl border-2 border-muted"
+                  className="mt-3 w-full px-6 py-4 rounded-xl border-2 border-muted"
                 />
               )}
             </div>
 
-            {/* Image Upload */}
             <div>
-              <label className="block text-lg font-semibold text-text-dark mb-3">
+              <label className="block text-lg font-semibold mb-3">
                 Photos
               </label>
+
               <div className="border-4 border-dashed border-muted rounded-xl p-8 text-center">
                 <input
                   type="file"
                   accept="image/*"
-                  multiple
                   onChange={handleImageChange}
                   className="hidden"
                   id="images"
                 />
+
                 <label
                   htmlFor="images"
                   className="cursor-pointer text-primary hover:text-accent text-xl"
                 >
-                  Click to upload photos
+                  Click to upload photo
                 </label>
+
                 {previewImages.length > 0 && (
-                  <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-6">
-                    {previewImages.map((url, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-40 object-cover rounded-xl"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-2xl hover:bg-red-600"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                  <div className="mt-6">
+                    <div className="relative inline-block">
+                      <img
+                        src={previewImages[0]}
+                        alt="Preview"
+                        className="w-64 h-40 object-cover rounded-xl"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               className="w-full py-4 text-2xl rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold transition"
@@ -525,7 +476,6 @@ const NewItem = () => {
         </motion.div>
       </div>
 
-      {/* Success Modal */}
       {showSuccess && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -537,15 +487,18 @@ const NewItem = () => {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-2xl p-10 max-w-xl w-full text-center"
           >
-            <h3 className="text-3xl font-bold mb-4">Thank You for Sharing!</h3>
+            <h3 className="text-3xl font-bold mb-4">
+              Thank You for Sharing!
+            </h3>
+
             <p className="text-text-light text-xl">
-              Your food listing has been created. Redirecting to your listings...
+              Your food listing has been created. Redirecting to your profile...
             </p>
           </motion.div>
         </motion.div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default NewItem
+export default NewItem;

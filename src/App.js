@@ -1,147 +1,87 @@
-// import React, { useState, useEffect } from "react";
-// import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-// import Login from "./components/Login";
-// import SignUp from "./components/SignUp";
-// import Home from './pages/Home';
-// import Browse from './pages/Browse'; 
-// import MyListings from './pages/MyListings';
-// import Profile from './pages/Profile'; 
-// import NewItem from './pages/NewItem';
-// import FoodItemDetails from './pages/FoodItemDetails';
-// import ProtectedRoute from './components/ProtectedRoutes';
+import React, { useState, useEffect, Suspense, lazy } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { auth, db } from './config/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import Header from './components/ui/Header'
+import { useNotifications } from './hooks/useNotifications'
+import LoadingSpinner from './components/ui/LoadingSpinner' // Assuming this exists; if not, create a simple spinner
 
-// import { auth } from './config/firebase'
-// import { Navigate } from 'react-router-dom';
-// import Header from './components/Header';
-
-// export default function App() {
-//   const [user, setUser] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-//       setUser(currentUser);
-//       setLoading(false); 
-//     });
-
-//     return () => unsubscribe(); // Cleanup subscription
-//   }, []);
-
-//   if (loading) return <p>Loading...</p>;
-
-//   return (
-//     <Router>
-//       {user && <Header />} 
-//       <Routes>
-//         <Route path="/login" element={<Login />} />
-//         <Route path="/signup" element={<SignUp />} />
-        
-//         {/* Protected Routes */}
-//         <Route path="/home" element={user ? <Home /> : <Navigate to="/login" />} />
-//         <Route path="/browse" element={user ? <Browse /> : <Navigate to="/login" />} />
-//         <Route path="/my-listings" element={user ? <MyListings /> : <Navigate to="/login" />} />
-//         <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
-//         <Route path="/NewItem" element={user ? <NewItem /> : <Navigate to="/NewItem" />} />
-//         <Route path="/food/:id" element={<FoodItemDetails />} />
-
-//         <Route path="*" element={<Navigate to={user ? "/home" : "/login"} />} />
-//       </Routes>
-//     </Router>
-//   );
-// }
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router,Routes, Route,  } from 'react-router-dom'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import SignUp from './pages/SignUp'
-import Browse from './pages/Browse'
-import MyListings from './pages/MyListings'
-import FoodDetails from './pages/FoodDetails'
-import NewItem from './pages/NewItem'
-import Profile from './pages/Profile'
-import ProtectedRoute from './components/ProtectedRoutes';
-
-import { auth } from './config/firebase'
-import { Navigate } from 'react-router-dom';
-import Header from './components/Header';
+// Lazy load components to prevent circular dependencies
+const Home = lazy(() => import('./pages/Home'))
+const Login = lazy(() => import('./pages/Login'))
+const SignUp = lazy(() => import('./pages/SignUp'))
+const Browse = lazy(() => import('./pages/Browse'))
+const MyListings = lazy(() => import('./pages/MyListings'))
+const FoodDetails = lazy(() => import('./pages/FoodDetails'))
+const NewItem = lazy(() => import('./pages/NewItem'))
+const Profile = lazy(() => import('./pages/Profile'))
 
 function App() {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'request',
-      title: 'New request for your homemade lasagna',
-      message: 'Sarah would like to pick up your homemade lasagna',
-      createdAt: new Date('2025-04-20T10:30:00'),
-      isRead: false,
-    },
-    {
-      id: 2,
-      type: 'accepted',
-      title: 'Request accepted!',
-      message: 'Michael accepted your request for chocolate cake',
-      createdAt: new Date('2025-04-19T16:45:00'),
-      isRead: true,
-    },
-    {
-      id: 3,
-      type: 'rejected',
-      title: 'Request declined',
-      message: 'Lisa declined your request for vegetable curry',
-      createdAt: new Date('2025-04-18T14:20:00'),
-      isRead: false,
-    },
-    {
-      id: 4,
-      type: 'request',
-      title: 'New request for your apple pie',
-      message: 'John would like to pick up your apple pie tomorrow',
-      createdAt: new Date('2025-04-17T09:15:00'),
-      isRead: false,
-    }
-  ])
-  
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, isRead: true } : notification
-    ))
-  }
-  
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, isRead: true })))
-  }
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-useEffect(() => {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [incomingRequests, setIncomingRequests] = useState([])
+  const [outgoingRequests, setOutgoingRequests] = useState([])
+
+  useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-      setLoading(false); 
-    });
+      setUser(currentUser)
+      setLoading(false)
+    })
+    return () => unsubscribe()
+  }, [])
 
-    return () => unsubscribe(); // Cleanup subscription
-  }, []);
+  // Fetch requests whenever user changes
+  useEffect(() => {
+    if (!user?.uid) {
+      setIncomingRequests([])
+      setOutgoingRequests([])
+      return
+    }
 
-  if (loading) return <p>Loading...</p>;
+    const fetchRequests = async () => {
+      try {
+        const [incomingSnap, outgoingSnap] = await Promise.all([
+          getDocs(query(collection(db, 'requests'), where('ownerId', '==', user.uid))),
+          getDocs(query(collection(db, 'requests'), where('requesterId', '==', user.uid)))
+        ])
+        setIncomingRequests(incomingSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
+        setOutgoingRequests(outgoingSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
+      } catch (err) {
+        console.error('Error fetching requests for notifications:', err)
+      }
+    }
+
+    fetchRequests()
+  }, [user?.uid])
+
+  const { notifications, markAsRead, markAllAsRead } = useNotifications(
+    incomingRequests,
+    outgoingRequests
+  )
+
+  if (loading) return <LoadingSpinner />
+
   return (
     <Router>
-<Header
-  user={user}
-  notifications={notifications}
-  markAsRead={markAsRead}
-  markAllAsRead={markAllAsRead}
-/>
-    <Routes>
-      <Route path="/" element={<Home user={user}/>} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/browse" element={<Browse user={user} />} />
-      <Route path="/my-listings" element={<MyListings />} />
-      <Route path="/food/:id" element={<FoodDetails />} />
-      <Route path="/new-item" element={<NewItem />} />
-      <Route path="/about" element={<div>About Page (Coming Soon)</div>} />
-      <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
-
-    </Routes>
+      <Header
+        user={user}
+        notifications={notifications}
+        markAsRead={markAsRead}
+        markAllAsRead={markAllAsRead}
+      />
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<Home user={user} />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/browse" element={<Browse user={user} />} />
+          <Route path="/my-listings" element={<MyListings />} />
+          <Route path="/food/:id" element={<FoodDetails />} />
+          <Route path="/new-item" element={<NewItem />} />
+          <Route path="/about" element={<div>About Page (Coming Soon)</div>} />
+          <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+        </Routes>
+      </Suspense>
     </Router>
   )
 }

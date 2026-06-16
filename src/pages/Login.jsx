@@ -192,32 +192,31 @@ export default function Login() {
   initial={{ opacity: 0, x: 20 }}
   animate={{ opacity: 1, x: 0 }}
   transition={{ duration: 0.6 }}
-  className="flex-1 flex flex-col items-center justify-start pt-8 pb-8"
+  className="flex-1 flex flex-col items-center justify-center py-4"
 >
   {/* PlateMate Logo */}
   <Link 
     to="/" 
-    className="text-7xl font-bold text-text-dark flex items-center gap-4 font-sans mb-12"
+    className="text-5xl font-bold text-text-dark flex items-center gap-4 font-sans mb-6"
   >
-    <UtensilsCrossed className="h-14 w-14 text-primary" />
+    <UtensilsCrossed className="h-10 w-10 text-primary" />
     <span className="text-primary">Plate</span>
     <span>Mate</span>
   </Link>
 
-  <div className="w-full max-w-3xl space-y-12"> {/* wider max-w */}
+  <div className="w-full max-w-3xl space-y-8">
     <div className="text-center">
-      <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+      <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
         Welcome Back!
       </h1>
-      <p className="text-gray-700 text-2xl md:text-3xl">
+      <p className="text-gray-700 text-xl md:text-2xl">
         Sign in to share and receive meals in your community
       </p>
     </div>
 
-    <form onSubmit={handleLogin
-    } className="space-y-8 text-2xl">
-      <div className="space-y-3">
-        <label htmlFor="email" className="block font-semibold text-gray-800 text-2xl">
+    <form onSubmit={handleLogin} className="space-y-6 text-xl">
+      <div className="space-y-2">
+        <label htmlFor="email" className="block font-semibold text-gray-800 text-xl">
           Email
         </label>
         <input
@@ -226,13 +225,13 @@ export default function Login() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="w-full border border-gray-300 rounded-md px-6 py-5 text-2xl focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full border border-gray-300 rounded-md px-4 py-3 text-xl focus:outline-none focus:ring-2 focus:ring-primary"
           required
         />
       </div>
 
-      <div className="space-y-3">
-        <label htmlFor="password" className="block font-semibold text-gray-800 text-2xl">
+      <div className="space-y-2">
+        <label htmlFor="password" className="block font-semibold text-gray-800 text-xl">
           Password
         </label>
         <input
@@ -241,32 +240,32 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="w-full border border-gray-300 rounded-md px-6 py-5 text-2xl focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full border border-gray-300 rounded-md px-4 py-3 text-xl focus:outline-none focus:ring-2 focus:ring-primary"
           required
         />
       </div>
 
       <button 
         type="submit" 
-        className="w-full bg-primary hover:bg-primary-dark text-white font-semibold text-2xl py-5 rounded-md transition-colors"
+        className="w-full bg-primary hover:bg-primary-dark text-white font-semibold text-xl py-4 rounded-md transition-colors"
       >
         Login
       </button>
     </form>
 
-    <div className="relative my-12">
+    <div className="relative my-8">
       <hr />
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="px-6 bg-white text-gray-500 text-xl">or</span>
+        <span className="px-4 bg-white text-gray-500 text-lg">or</span>
       </div>
     </div>
 
     <button 
       onClick={handleGoogleLogin}
-      className="w-full border border-gray-300 rounded-md py-5 text-2xl font-semibold hover:bg-gray-100 transition-colors flex items-center justify-center gap-4"
+      className="w-full border border-gray-300 rounded-md py-4 text-xl font-semibold hover:bg-gray-100 transition-colors flex items-center justify-center gap-4"
     >
       {/* Google Logo SVG */}
-      <svg className="w-8 h-8" viewBox="0 0 48 48">
+      <svg className="w-7 h-7" viewBox="0 0 48 48">
         <g>
           <path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.2 3.23l6.9-6.9C36.2 2.1 30.5 0 24 0 14.8 0 6.7 5.1 2.7 12.6l8.1 6.3C13.2 13.1 18.2 9.5 24 9.5z"/>
           <path fill="#34A853" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.7-2.1 5-4.4 6.6l7 5.4c4.1-3.8 6.5-9.3 6.5-16.5z"/>
@@ -278,7 +277,7 @@ export default function Login() {
       Continue with Google
     </button>
 
-    <p className="text-center text-gray-600 text-2xl mt-8">
+    <p className="text-center text-gray-600 text-xl mt-6">
       Don't have an account?{' '}
       <Link 
         to="/signup" 

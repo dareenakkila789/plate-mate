@@ -24,14 +24,12 @@ function NotificationPanel({ notifications, markAsRead, markAllAsRead }) {
   };
   
   const formatDate = (date) => {
-    if (isToday(date)) {
-      return `Today, ${format(date, 'h:mm a')}`;
-    } else if (isYesterday(date)) {
-      return `Yesterday, ${format(date, 'h:mm a')}`;
-    } else {
-      return format(date, 'MMM d, yyyy');
-    }
-  };
+  const parsed = new Date(date)
+  if (!date || isNaN(parsed)) return ''
+  if (isToday(parsed)) return `Today, ${format(parsed, 'h:mm a')}`
+  if (isYesterday(parsed)) return `Yesterday, ${format(parsed, 'h:mm a')}`
+  return format(parsed, 'MMM d, yyyy')
+}
   
   return (
     <motion.div 

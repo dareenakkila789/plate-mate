@@ -1,87 +1,123 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react'
 
-// Mock data for notifications
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'REQUEST_RECEIVED',
-    title: 'New Request for Homemade Pasta',
-    message: 'Sarah would like to claim your homemade pasta dish',
-    timestamp: new Date(Date.now() - 30 * 60000).toISOString(), // 30 minutes ago
-    read: false,
-    status: 'pending'
-  },
-  {
-    id: '2',
-    type: 'REQUEST_ACCEPTED',
-    title: 'Request Accepted',
-    message: 'Michael accepted your request for vegetable curry',
-    timestamp: new Date(Date.now() - 2 * 3600000).toISOString(), // 2 hours ago
-    read: false,
-    status: 'accepted'
-  },
-  {
-    id: '3',
-    type: 'REQUEST_REJECTED',
-    title: 'Request Declined',
-    message: 'John cannot fulfill your request for chocolate cake',
-    timestamp: new Date(Date.now() - 5 * 3600000).toISOString(), // 5 hours ago
-    read: true,
-    status: 'rejected'
-  },
-  {
-    id: '4',
-    type: 'GENERAL',
-    title: 'Welcome to PlateMate!',
-    message: 'Start sharing your homemade dishes with your community today',
-    timestamp: new Date(Date.now() - 24 * 3600000).toISOString(), // 1 day ago
-    read: true,
-    status: null
-  },
-  {
-    id: '5',
-    type: 'REQUEST_RECEIVED',
-    title: 'New Request for Apple Pie',
-    message: 'David would like to claim your freshly baked apple pie',
-    timestamp: new Date(Date.now() - 26 * 3600000).toISOString(), // 26 hours ago
-    read: true,
-    status: 'pending'
-  }
-];
-
-export const useNotifications = () => {
-  const [notifications, setNotifications] = useState(mockNotifications);
-  const [hasUnread, setHasUnread] = useState(false);
+export const useNotifications = (incomingRequests = [], outgoingRequests = []) => {
+  const [readState, setReadState] = useState(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      return JSON.parse(localStorage.getItem('plateMateNotificationsRead') || '{}')
+    } catch {
+      return {}
+    }
+  })
 
   useEffect(() => {
-    // Check if there are any unread notifications
-    const unreadExists = notifications.some(notification => !notification.read);
-    setHasUnread(unreadExists);
-  }, [notifications]);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('plateMateNotificationsRead', JSON.stringify(readState))
+    }
+  }, [readState])
+
+  const buildNotification = (request, isIncoming) => {
+    const id = `${isIncoming ? 'in' : 'out'}-${request.id}`
+    const timestamp = request.updatedAt || request.createdAt || new Date().toISOString()
+    let title = ''
+    let message = ''
+    let type = 'general'
+
+    if (isIncoming) {
+      if (request.status === 'pending') {
+        type = 'request'
+        title = `New request from ${request.requesterName || 'someone'}`
+        message = `${request.requesterName || 'Someone'} wants ${request.foodName || 'your item'}`
+      } else if (request.status === 'accepted') {
+        type = 'accepted'
+        title = `Request accepted`
+        message = `You accepted the request for ${request.foodName}`
+      } else if (request.status === 'ready_for_pickup') {
+        type = 'ready'
+        title = `Ready for pickup`
+        message = `${request.foodName} is ready for pickup`
+      } else if (request.status === 'arrived') {
+        type = 'arrived'
+        title = `Requester arrived`
+        message = `${request.requesterName || 'Your requester'} has arrived for pickup`
+      } else if (request.status === 'completed') {
+        type = 'completed'
+        title = `Request completed`
+        message = `Pickup finished for ${request.foodName}`
+      } else if (request.status === 'declined') {
+        type = 'rejected'
+        title = `Request declined`
+        message = `You declined the request for ${request.foodName}`
+      }
+    } else {
+      if (request.status === 'pending') {
+        type = 'request'
+        title = `Request sent`
+        message = `Your request for ${request.foodName} is pending`
+      } else if (request.status === 'accepted') {
+        type = 'accepted'
+        title = `Request accepted`
+        message = `${request.foodName} request was accepted`
+      } else if (request.status === 'ready_for_pickup') {
+        type = 'ready'
+        title = `Ready for pickup`
+        message = `Owner marked ${request.foodName} ready`
+      } else if (request.status === 'arrived') {
+        type = 'arrived'
+        title = `Arrived at pickup`
+        message = `You arrived at pickup location for ${request.foodName}`
+      } else if (request.status === 'completed') {
+        type = 'completed'
+        title = `Pickup completed`
+        message = `Your pickup is complete! Rate your experience.`
+      } else if (request.status === 'declined') {
+        type = 'rejected'
+        title = `Request declined`
+        message = `Your request for ${request.foodName} was declined`
+      }
+    }
+
+    return {
+      id,
+      type,
+      title,
+      message,
+      timestamp,
+      createdAt: timestamp,
+      isRead: !!readState[id],
+      request
+    }
+  }
+
+  const notifications = useMemo(() => {
+    const items = [
+      ...incomingRequests.map((request) => buildNotification(request, true)),
+      ...outgoingRequests.map((request) => buildNotification(request, false))
+    ]
+
+    return items
+      .filter((item) => item.title)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+  }, [incomingRequests, outgoingRequests, readState])
+
+  const hasUnread = notifications.some((notification) => !notification.isRead)
 
   const markAllAsRead = () => {
-    setNotifications(prevNotifications =>
-      prevNotifications.map(notification => ({
-        ...notification,
-        read: true
-      }))
-    );
-  };
+    const nextState = notifications.reduce((acc, notification) => {
+      acc[notification.id] = true
+      return acc
+    }, {})
+    setReadState((prev) => ({ ...prev, ...nextState }))
+  }
 
   const markAsRead = (id) => {
-    setNotifications(prevNotifications =>
-      prevNotifications.map(notification =>
-        notification.id === id
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  };
+    setReadState((prev) => ({ ...prev, [id]: true }))
+  }
 
   return {
     notifications,
     hasUnread,
     markAllAsRead,
     markAsRead
-  };
-};
+  }
+}

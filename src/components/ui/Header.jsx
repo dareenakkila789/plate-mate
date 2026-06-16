@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Home, Menu, X, UtensilsCrossed, User } from 'lucide-react';
-import NotificationPanel from './notifiactions/NotificationPanel';
-import { auth } from '../config/firebase';
+import NotificationPanel from '../notifiactions/NotificationPanel';
+import { auth } from '../../config/firebase';
 import { Search } from 'lucide-react'; // Add this import at the top with other lucide-react icons
 
 import { 
@@ -67,13 +67,7 @@ function Header({ user, notifications = [], markAsRead, markAllAsRead }) {
 
         {/* Desktop nav aligned right */}
         <nav className="hidden md:flex space-x-16 items-center text-xl font-semibold">
-          <Link
-            to="/"
-            className="flex items-center text-gray-700 hover:text-green-500 transition-colors duration-200"
-          >
-            <Home className="mr-3" size={28} />
-            Home
-          </Link>
+         
 
           {user ? (
             <>
