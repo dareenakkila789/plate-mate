@@ -4,7 +4,7 @@ import { auth, db } from './config/firebase'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import Header from './components/ui/Header'
 import { useNotifications } from './hooks/useNotifications'
-import LoadingSpinner from './components/ui/LoadingSpinner' // Assuming this exists; if not, create a simple spinner
+import LoadingSpinner from './components/ui/LoadingSpinner' 
 
 // Lazy load components to prevent circular dependencies
 const Home = lazy(() => import('./pages/Home'))
